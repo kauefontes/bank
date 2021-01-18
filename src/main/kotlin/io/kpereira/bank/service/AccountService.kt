@@ -23,7 +23,7 @@ class AccountService(private val accountRepository: AccountRepository) {
     fun delegateEvents(event: Event) {
         when (event.type) {
             "deposit" -> doDeposit(Account(event.destination.toLong(), event.amount))
-            "withdraw" -> doWithdraw(event.destination.toLong(), event.amount)
+            "withdraw" -> doWithdraw(event.origin.toLong(), event.amount)
             "transfer" -> doTransfer(event.origin.toLong(), event.amount, event.destination.toLong())
         }
     }
