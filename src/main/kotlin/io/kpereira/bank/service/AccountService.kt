@@ -1,7 +1,6 @@
 package io.kpereira.bank.service
 
-import io.kpereira.bank.model.Account
-import io.kpereira.bank.model.Event
+import io.kpereira.bank.model.*
 import io.kpereira.bank.repository.AccountRepository
 import org.springframework.stereotype.Service
 
@@ -9,51 +8,45 @@ import org.springframework.stereotype.Service
 class AccountService(private val accountRepository: AccountRepository) {
 
     fun getBalance(id: Long): Int {
-        val account = accountRepository.findById(id).get()
-        if (exists(id)) {
-            return account.balance
-        }
-        return account.balance //404
+        return accountRepository.findById(id).get().balance
     }
 
     fun clearAllAccounts() {
         accountRepository.deleteAll()
     }
 
-    fun delegateEvents(event: Event) {
-        when (event.type) {
-            "deposit" -> doDeposit(Account(event.destination.toLong(), event.amount))
-            "withdraw" -> doWithdraw(event.origin.toLong(), event.amount)
-            "transfer" -> doTransfer(event.origin.toLong(), event.amount, event.destination.toLong())
+    fun delegateEvents(event: Event): Any {
+        return when (event.type) {
+            "deposit" -> doDeposit(event)
+            "withdraw" -> doWithdraw(event)
+            else -> doTransfer(event)
         }
     }
 
-    fun doDeposit(account: Account): Account {
+    fun doDeposit(event: Event): DepositResponse {
+        val account = Account(event.destination!!.toLong(), event.amount!!)
         val id = account.id
         if (exists(id)) {
             val balance = findById(id).balance
             val amount = account.balance
             val newBalance = balance + amount
-            return accountRepository.save(Account(id, newBalance))
+            return DepositResponse(accountRepository.save(Account(id, newBalance)))
         }
-        return accountRepository.save(account)
+        return DepositResponse(accountRepository.save(account))
     }
 
-    fun doWithdraw(id: Long, amount: Int): Account {
-        if (exists(id)) {
-            val balance = findById(id).balance
-            val newBalance = balance + amount
-            return accountRepository.save(Account(id, newBalance))
-        }
-        return findById(id) //404
+    fun doWithdraw(event: Event): WithdrawResponse {
+        val id = event.origin!!.toLong()
+        val amount = event.amount
+        val balance = findById(id).balance
+        val newBalance = balance - amount!!
+        return WithdrawResponse(accountRepository.save(Account(id, newBalance)))
     }
 
-    fun doTransfer(origin: Long, amount: Int, destination: Long) {
-        if (exists(origin)) {
-            val destinationAccount = doDeposit(Account(destination, amount))
-            val originAccount = doWithdraw(origin, amount)
-        }
-        //404
+    fun doTransfer(event: Event): TransferResponse {
+        val destinationAccount = doDeposit(event)
+        val originAccount = doWithdraw(event)
+        return TransferResponse(originAccount.origin, destinationAccount.destination)
     }
 
     fun findById(id: Long): Account {
