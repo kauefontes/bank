@@ -8,17 +8,29 @@ import org.springframework.stereotype.Service
 @Service
 class AccountService(private val accountRepository: AccountRepository) {
 
-    fun delegateEvent(event: Event) {
+    fun getBalance(id: Long): Int {
+        val account = accountRepository.findById(id).get()
+        if (exists(id)) {
+            return account.balance
+        }
+        return account.balance //404
+    }
+
+    fun clearAllAccounts() {
+        accountRepository.deleteAll()
+    }
+
+    fun delegateEvents(event: Event) {
         when (event.type) {
-            "deposit" -> deposit(Account(event.destination.toLong(), event.amount))
-            "withdraw" -> withdraw(event.destination.toLong(), event.amount)
-            "transfer" -> transfer(event.origin.toLong(), event.amount, event.destination.toLong())
+            "deposit" -> doDeposit(Account(event.destination.toLong(), event.amount))
+            "withdraw" -> doWithdraw(event.destination.toLong(), event.amount)
+            "transfer" -> doTransfer(event.origin.toLong(), event.amount, event.destination.toLong())
         }
     }
 
-    fun deposit(account: Account): Account {
+    fun doDeposit(account: Account): Account {
         val id = account.id
-        if (exist(id)) {
+        if (exists(id)) {
             val balance = findById(id).balance
             val amount = account.balance
             val newBalance = balance + amount
@@ -27,8 +39,8 @@ class AccountService(private val accountRepository: AccountRepository) {
         return accountRepository.save(account)
     }
 
-    fun withdraw(id: Long, amount: Int): Account {
-        if (exist(id)) {
+    fun doWithdraw(id: Long, amount: Int): Account {
+        if (exists(id)) {
             val balance = findById(id).balance
             val newBalance = balance + amount
             return accountRepository.save(Account(id, newBalance))
@@ -36,10 +48,10 @@ class AccountService(private val accountRepository: AccountRepository) {
         return findById(id) //404
     }
 
-    fun transfer(origin: Long, amount: Int, destination: Long) {
-        if (exist(origin)) {
-            val destinationAccount = deposit(Account(destination, amount))
-            val originAccount = withdraw(origin, amount)
+    fun doTransfer(origin: Long, amount: Int, destination: Long) {
+        if (exists(origin)) {
+            val destinationAccount = doDeposit(Account(destination, amount))
+            val originAccount = doWithdraw(origin, amount)
         }
         //404
     }
@@ -48,19 +60,7 @@ class AccountService(private val accountRepository: AccountRepository) {
         return accountRepository.findById(id).get()
     }
 
-    fun balance(id: Long): Int {
-        val account = accountRepository.findById(id).get()
-        if (exist(id)) {
-            return account.balance
-        }
-        return account.balance //404
-    }
-
-    fun reset() {
-        accountRepository.deleteAll()
-    }
-
-    fun exist(id: Long): Boolean {
+    fun exists(id: Long): Boolean {
         return accountRepository.existsById(id)
     }
 }
