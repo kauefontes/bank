@@ -32,6 +32,9 @@ class AccountService(private val accountRepository: AccountRepository) {
 
     fun balance(id: Long): Int {
         val account = accountRepository.findById(id).get()
+        if (exist(id)) {
+            return account.balance
+        }
         return account.balance
     }
 
