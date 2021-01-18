@@ -12,6 +12,7 @@ class AccountService(private val accountRepository: AccountRepository) {
         when (event.type) {
             "deposit" -> deposit(Account(event.destination.toLong(), event.amount))
             "withdraw" -> withdraw(event.destination.toLong(), event.amount)
+            "transfer" -> transfer(event.origin.toLong(), event.amount, event.destination.toLong())
         }
     }
 
@@ -33,6 +34,14 @@ class AccountService(private val accountRepository: AccountRepository) {
             return accountRepository.save(Account(id, newBalance))
         }
         return findById(id) //404
+    }
+
+    fun transfer(origin: Long, amount: Int, destination: Long) {
+        if (exist(origin)) {
+            val destinationAccount = deposit(Account(destination, amount))
+            val originAccount = withdraw(origin, amount)
+        }
+        //404
     }
 
     fun findById(id: Long): Account {
