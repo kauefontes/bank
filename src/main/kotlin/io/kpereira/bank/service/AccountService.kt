@@ -4,7 +4,6 @@ import io.kpereira.bank.model.Account
 import io.kpereira.bank.model.Event
 import io.kpereira.bank.repository.AccountRepository
 import org.springframework.stereotype.Service
-import java.util.*
 
 @Service
 class AccountService(private val accountRepository: AccountRepository) {
@@ -12,6 +11,7 @@ class AccountService(private val accountRepository: AccountRepository) {
     fun delegateEvent(event: Event) {
         when (event.type) {
             "deposit" -> deposit(Account(event.destination.toLong(), event.amount))
+            "withdraw" -> withdraw(event.destination.toLong(), event.amount)
         }
     }
 
@@ -19,11 +19,20 @@ class AccountService(private val accountRepository: AccountRepository) {
         val id = account.id
         if (exist(id)) {
             val balance = findById(id).balance
-            val value = account.balance
-            val newBalance = balance + value
+            val amount = account.balance
+            val newBalance = balance + amount
             return accountRepository.save(Account(id, newBalance))
         }
         return accountRepository.save(account)
+    }
+
+    fun withdraw(id: Long, amount: Int): Account {
+        if (exist(id)) {
+            val balance = findById(id).balance
+            val newBalance = balance + amount
+            return accountRepository.save(Account(id, newBalance))
+        }
+        return findById(id) //404
     }
 
     fun findById(id: Long): Account {
@@ -35,7 +44,7 @@ class AccountService(private val accountRepository: AccountRepository) {
         if (exist(id)) {
             return account.balance
         }
-        return account.balance
+        return account.balance //404
     }
 
     fun reset() {
