@@ -1,10 +1,10 @@
 package io.kpereira.bank.controller
 
 import io.kpereira.bank.model.Event
+import io.kpereira.bank.model.WithdrawResponse
 import io.kpereira.bank.service.AccountService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.lang.Nullable
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
@@ -34,6 +34,10 @@ class AccountController(private val accountService: AccountService) {
         ) {
             return ResponseEntity(0, HttpStatus.NOT_FOUND)
         }
-        return ResponseEntity(accountService.delegateEvents(event), HttpStatus.CREATED)
+        val operationResult = accountService.delegateEvents(event)
+        return if ((event.type == "transfer" || event.type == "withdraw") && operationResult == null)
+            ResponseEntity("INSUFFICIENT FUNDS", HttpStatus.FORBIDDEN)
+        else
+            return ResponseEntity(operationResult, HttpStatus.CREATED)
     }
 }
