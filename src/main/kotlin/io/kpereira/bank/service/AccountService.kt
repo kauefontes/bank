@@ -15,7 +15,7 @@ class AccountService(private val accountRepository: AccountRepository) {
         accountRepository.deleteAll()
     }
 
-    fun delegateEvents(event: Event): Any {
+    fun delegateEvents(event: Event): Any? {
         return when (event.type) {
             "deposit" -> doDeposit(event)
             "withdraw" -> doWithdraw(event)
@@ -35,17 +35,20 @@ class AccountService(private val accountRepository: AccountRepository) {
         return DepositResponse(accountRepository.save(account))
     }
 
-    fun doWithdraw(event: Event): WithdrawResponse {
-        val id = event.origin!!.toLong()
+    fun doWithdraw(event: Event): WithdrawResponse? {
+        val id = event.origin?.toLong()
         val amount = event.amount
-        val balance = findById(id).balance
+        val balance = findById(id!!).balance
         val newBalance = balance - amount!!
+        if (newBalance < -500) {
+            return null
+        }
         return WithdrawResponse(accountRepository.save(Account(id, newBalance)))
     }
 
-    fun doTransfer(event: Event): TransferResponse {
+    fun doTransfer(event: Event): TransferResponse? {
         val destinationAccount = doDeposit(event)
-        val originAccount = doWithdraw(event)
+        val originAccount = doWithdraw(event) ?: return null
         return TransferResponse(originAccount.origin, destinationAccount.destination)
     }
 
